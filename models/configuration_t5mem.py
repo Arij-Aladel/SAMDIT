@@ -6,7 +6,6 @@ logger = logging.get_logger(__name__)
 
 T5MEM_PRETRAINED_CONFIG_ARCHIVE_MAP = {
     "t5mem-base": "configs/t5mem-base.json",
-
 }
 
 
@@ -60,9 +59,14 @@ class T5MemConfig(PretrainedConfig):
         use_cache (`bool`, *optional*, defaults to `True`):
             Whether or not the model should return the last key/values attentions (not used by all models).
     """
+
     model_type = "t5mem"
     keys_to_ignore_at_inference = ["past_key_values"]
-    attribute_map = {"hidden_size": "d_model", "num_attention_heads": "num_heads", "num_hidden_layers": "num_layers"}
+    attribute_map = {
+        "hidden_size": "d_model",
+        "num_attention_heads": "num_heads",
+        "num_hidden_layers": "num_layers",
+    }
 
     def __init__(
         self,
@@ -88,7 +92,7 @@ class T5MemConfig(PretrainedConfig):
         eos_token_id=1,
         mem_token_id=0,
         output_attentions=True,
-        **kwargs
+        **kwargs,
     ):
 
         self.vocab_size = vocab_size
@@ -97,10 +101,12 @@ class T5MemConfig(PretrainedConfig):
         self.d_ff = d_ff
         self.num_layers = num_layers
         # default = symmetry
-        self.num_decoder_layers = num_decoder_layers if num_decoder_layers is not None else self.num_layers
+        self.num_decoder_layers = (
+            num_decoder_layers if num_decoder_layers is not None else self.num_layers
+        )
         self.num_heads = num_heads
         self.block_size = block_size
-        self.num_mem = num_mem#block_size//8
+        self.num_mem = num_mem  # block_size//8
         self.relative_attention_num_buckets = relative_attention_num_buckets
         self.relative_attention_max_distance = relative_attention_max_distance
         self.dropout_rate = dropout_rate
@@ -134,5 +140,3 @@ class T5MemConfig(PretrainedConfig):
             # decoder_start_token_id=pad_token_id,
             **kwargs,
         )
-
-

@@ -17,7 +17,6 @@
 Fine-tuning a 🤗 Transformers model on summarization.
 """
 # You can also adapt this script on your own summarization task. Pointers for this are left as comments.
-
 import argparse
 import json
 import logging
@@ -338,7 +337,7 @@ def main():
         args.val_max_target_length = args.max_target_length
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.
-    send_example_telemetry("summarization_no_trainer_samsum", args)
+    send_example_telemetry("summarization_no_trainer_samsum_test", args)
 
     # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
     # If we're using tracking, we also need to initialize it here and it will by default pick up all supported trackers
@@ -468,16 +467,12 @@ def main():
                 mymodel.load_state_dict(mymodel_dict)
                 return mymodel
             model = load_state_dict(model, t5_model.state_dict())
-            # print("model")
-            # print(model)
+
             
         elif 'long-t5' in args.model_name_or_path:
             model = LongT5ForConditionalGeneration.from_pretrained(args.model_name_or_path)
             
         else:
-            print(" args.model_name_or_path :-------------------------------------   ",  args.model_name_or_path)
-            print("congig:  ", config)
-            print('bool(".ckpt" in args.model_name_or_path):  ', bool(".ckpt" in args.model_name_or_path))
             model = AutoModelForSeq2SeqLM.from_pretrained(
                 config,
                 from_tf=bool(".ckpt" in args.model_name_or_path),
@@ -501,9 +496,7 @@ def main():
     if not args.dataset_name_cached:    
         if args.dataset_name is not None:
             # Downloading and loading a dataset from the hub.
-            #if args.dataset_config_name is not None:
-            # print("-----------raw_datasets = load_dataset(args.dataset_name, args.dataset_config_name)---------------")
-            # print("args.dataset_name, args.dataset_config_name:: ", args.dataset_name, args.dataset_config_name)
+
             raw_datasets = load_dataset(args.dataset_name, args.dataset_config_name)
         else:
             data_files = {}
@@ -539,13 +532,11 @@ def main():
         # Temporarily set max_target_length for training.
         max_target_length = args.max_target_length
         padding = "max_length" if args.pad_to_max_length else False
-        # print('padding = "max_length" if args.pad_to_max_length else False: ', args.pad_to_max_length)
 
     def preprocess_function(examples):
         inputs = examples[text_column]
         targets = examples[summary_column]
         inputs = [prefix + inp for inp in inputs]
-        # print("padding ------------- ", padding)
         model_inputs = tokenizer(inputs, max_length=args.max_source_length, padding=padding, truncation=True)  # TODO
         # model_inputs = tokenizer(inputs)
 
@@ -562,7 +553,6 @@ def main():
 
         model_inputs["labels"] = labels["input_ids"]
         return model_inputs
-    print("padding ------------- ", padding)
     with accelerator.main_process_first():
         if not args.dataset_name_cached:
             processed_datasets = raw_datasets.map(
@@ -573,13 +563,12 @@ def main():
                 load_from_cache_file=not args.overwrite_cache,
                 desc="Running tokenizer on dataset",
             )
-            # print("processed_datasets befor saving.....................................    ")
-            # print(processed_datasets)
-            print('processed_datasets.save_to_disk("datasets"+"/"+args.dataset_name)------------------', "datasets"+"/"+args.dataset_name+f"_{args.model_name_or_path}")
+
+            #print('processed_datasets.save_to_disk("datasets"+"/"+args.dataset_name)------------------', "datasets"+"/"+args.dataset_name+f"_{args.model_name_or_path}")
+            save_path  = "datasets"+"/"+args.dataset_name+"_"+args.model_name_or_path
+            os.makedirs(save_path, exist_ok=True)
             processed_datasets.save_to_disk("datasets"+"/"+args.dataset_name+f"_{args.model_name_or_path}")
-            # processed_datasets = load_from_disk("datasets"+"/"+args.dataset_name+f"_{args.model_name_or_path}")
-            # print("processed_datasets after loading......................................    ")
-            # print(processed_datasets)
+
             def preprocess_len_function(examples):
                 output = {}
                 output["input_len"] = [len(x) for x in examples["input_ids"]]
@@ -592,17 +581,15 @@ def main():
                 remove_columns=['input_ids', 'attention_mask', 'labels'],
                 desc="Running len function on dataset",
             )
-            # print("data to save pandas in;    ", "datasets_len/"+args.dataset_name+".csv", "type processed_datasets_len:  ", type(processed_datasets_len))
-            # print("processed_datasets_len")
-            # print(processed_datasets_len)
-            # print("processed_datasets")
-            # print(processed_datasets)
+
+            os.makedirs(f"datasets_len/{args.dataset_name}", exist_ok=True)
             for split, data in processed_datasets_len.items():
-                data.to_csv(f"datasets_len/{args.dataset_name}_{args.model_name_or_path}/{split}.csv")
+                # data.to_csv(f"datasets_len/{args.dataset_name}_{args.model_name_or_path}/{split}.csv")
+                
+                data.to_csv(f"datasets_len/{args.dataset_name}/{split}.csv")
+
         else:
             processed_datasets = load_from_disk(args.dataset_name_cached)
-            # print("processed_datasets after loading......................................    ")
-            # print(processed_datasets)
 
     
     train_dataset = processed_datasets["train"]
@@ -689,7 +676,7 @@ def main():
         experiment_config = vars(args)
         # TensorBoard cannot log Enums, need the raw value
         experiment_config["lr_scheduler_type"] = experiment_config["lr_scheduler_type"].value
-        accelerator.init_trackers(f"summarization_no_trainer_cnn_dailymail", experiment_config)
+        accelerator.init_trackers("summarization_no_trainer_samsum_test", experiment_config)
         # accelerator.init_trackers(f"summarization_no_trainer_govreport-summarization{args.dataset_name if args.dataset_name is not None else args.dataset_name_cached.split('/')[1]}", experiment_config)
         # if args.report_to == "wandb":
         #     wandb.watch()
@@ -735,7 +722,6 @@ def main():
             resume_step = int(training_difference.replace("step_", ""))
             starting_epoch = resume_step // len(train_dataloader)
             resume_step -= starting_epoch * len(train_dataloader)
-    print(f"args.val_max_target_length:  {args.val_max_target_length},  config.max_length: {config.max_length}")
     for epoch in range(starting_epoch, args.num_train_epochs):     
         
 
@@ -776,10 +762,8 @@ def main():
 #                 decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
 
 #                 decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
-#                 # print("1>>>>>type decoded_preds, decoded_labels:  ", type(decoded_preds), type(decoded_labels), len(decoded_preds), len(decoded_labels))
 
 #                 # decoded_preds, decoded_labels = accelerator.gather_for_metrics((decoded_preds, decoded_labels))   # fixed from  accelerator.gather(decoded_preds, decoded_labels)
-#                 # print("2>>>>>type decoded_preds, decoded_labels:  ", type(decoded_preds), type(decoded_labels), len(decoded_preds), len(decoded_labels))
 #                 metric.add_batch(
 #                     predictions=decoded_preds,
 #                     references=decoded_labels,
@@ -818,8 +802,6 @@ def main():
         if args.with_tracking:
             total_loss = 0
         for step, batch in enumerate(train_dataloader):
-            # print("batch")
-            # print(batch['input_ids'].shape)
             # We need to skip steps until we reach the resumed step
             if args.resume_from_checkpoint and epoch == starting_epoch:
                 if resume_step is not None and step < resume_step:
@@ -827,32 +809,18 @@ def main():
                     continue
 
             with accelerator.accumulate(model):
-                outputs = model(**batch)
-                
-                # if len(batch['input_ids'][0])<10:
-                #        print(f"step: {step},  batch['input_ids'][0]: ",  batch['input_ids'][0])
-                # if step == 54 and len(batch['input_ids'][0])==78:
-                #     print("batch['input_ids'][0] ===== ",  batch['input_ids'][0])
-                    
-                loss = outputs.loss
-                # if step ==54:
-                #     print(f" step**: {step},  len inputs = ", len(batch['input_ids'][0]))
-                
+                outputs = model(**batch)    
+                loss = outputs.loss           
                 # We keep track of the loss at each epoch
                 if args.with_tracking:
                     total_loss += loss.detach().float()
                 accelerator.backward(loss)
-                # if step ==54:
-                #     print("backward batch['input_ids'][0]: ", len(batch['input_ids'][0]))
+
                 if (step+1) % args.gradient_accumulation_steps == 0:
                     optimizer.step()
                     lr_scheduler.step()
                     optimizer.zero_grad()
        
-
-                # print(f'backward{step}, loss={loss}.........................')
-                # if step == 54:
-                #     print("len inputs = ", len(batch['input_ids'][0]), batch['input_ids'][0])
 
             # Checks if the accelerator has performed an optimization step behind the scenes
             if accelerator.sync_gradients:
@@ -875,7 +843,6 @@ def main():
         # if args.val_max_target_length is None:
         #     args.val_max_target_length = args.max_target_length
 
-        print(f"args.val_max_target_length: {args.val_max_target_length},  args.max_target_length: {args.max_target_length}")
         gen_kwargs = {
             
             "max_length": args.val_max_target_length
@@ -1049,6 +1016,7 @@ def main():
         with open(os.path.join(args.output_dir, "training_args.json"), "w") as f:
             json.dump(dict(vars(args)),f)
             
+
 
 
     accelerator.end_training()
