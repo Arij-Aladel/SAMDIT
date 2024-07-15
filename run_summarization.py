@@ -427,8 +427,9 @@ def main():
     # download model & vocab.
     if args.config_name:
         config = AutoConfig.from_pretrained(args.config_name)
+        print(" T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5T5====")
     elif args.model_name_or_path:
-        config = T5MemConfig.from_pretrained(args.model_name_or_path)  # here fot t5mem
+       config = T5MemConfig.from_pretrained(args.model_name_or_path)  # here fot t5mem
     else:
         config = CONFIG_MAPPING[args.model_type]()
         logger.warning("You are instantiating a new config instance from scratch.")
@@ -478,6 +479,8 @@ def main():
                 from_tf=bool(".ckpt" in args.model_name_or_path),
                 config=config,
             )
+    elif args.config_name:
+        model = AutoModelForSeq2SeqLM.from_pretrained(args.config_name)
     else:
         logger.info("Training new model from scratch")
         model = AutoModelForSeq2SeqLM.from_config(config)
@@ -565,9 +568,9 @@ def main():
             )
 
             #print('processed_datasets.save_to_disk("datasets"+"/"+args.dataset_name)------------------', "datasets"+"/"+args.dataset_name+f"_{args.model_name_or_path}")
-            save_path  = "datasets"+"/"+args.dataset_name+"_"+args.model_name_or_path
+            save_path  = "datasets"+"/"+args.dataset_name+"_t5" #+args.model_name_or_path
             os.makedirs(save_path, exist_ok=True)
-            processed_datasets.save_to_disk("datasets"+"/"+args.dataset_name+f"_{args.model_name_or_path}")
+            processed_datasets.save_to_disk("datasets"+"/"+args.dataset_name+"t5")#f"_{args.model_name_or_path}")
 
             def preprocess_len_function(examples):
                 output = {}
